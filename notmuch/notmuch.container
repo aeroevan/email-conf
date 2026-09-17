@@ -1,0 +1,26 @@
+# Quadlet: notmuch mail indexer for the shared maildir-data volume
+#
+# Install:
+#   1. podman build -t local/email-notmuch:latest -f notmuch/Containerfile notmuch/
+#   2. install -Dm644 notmuch/notmuch.container ~/.config/containers/systemd/
+#   3. systemctl --user daemon-reload
+#      (the [Install] section of the quadlet enables it; "systemctl enable"
+#       of a generated quadlet unit is not possible)
+#
+# Search:  podman exec notmuch sh -c 'cd /var/mail && notmuch search date:today'
+
+[Unit]
+Description=notmuch mail indexer
+After=mbsync.service network-online.target
+Wants=network-online.target
+
+[Container]
+ContainerName=notmuch
+Image=local/email-notmuch:latest
+Volume=maildir-data:/var/mail
+
+[Service]
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

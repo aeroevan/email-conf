@@ -1,0 +1,22 @@
+#!/bin/sh
+# Sendmail-compatible shim for neomutt: pipes the message into the msmtp
+# container's msmtpq, which sends it via Gmail using a pizauth OAuth2 token
+# (or queues it in the msmtp-data volume if the send fails).
+#
+# neomutt invokes this as:  msmtp-send -- rcpt@example.com [...]
+# msmtpq passes every argument through to msmtp verbatim, and msmtp accepts
+# "--", so no argument rewriting is needed here.
+set -eu
+
+# Inside a toolbox container the host's podman is reached over the remote
+# socket; on the host plain podman is correct.  An explicit $PODMAN wins,
+# matching the Makefile's PODMAN variable.
+if [ -z "${PODMAN:-}" ]; then
+    if [ -f /run/.toolboxenv ]; then
+        PODMAN="podman --remote"
+    else
+        PODMAN="podman"
+    fi
+fi
+
+exec $PODMAN exec -i msmtp msmtpq -C /etc/msmtprc "$@"

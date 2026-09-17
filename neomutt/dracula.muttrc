@@ -1,0 +1,108 @@
+# Dracula theme for neomutt -- https://draculatheme.com
+#
+# Sourced from neomuttrc.  The palette itself comes from the dracula-palette
+# script next to this file, which picks 24-bit values or their xterm-256
+# approximations depending on what the terminal reports; see the comments
+# there.  It must be sourced first: $color_directcolor has to be set before
+# any color command, and every rule below is written against its variables.
+#
+#   $my_drac_bg      background        $my_drac_green   green
+#   $my_drac_current current line      $my_drac_orange  orange
+#   $my_drac_fg      foreground        $my_drac_pink    pink
+#   $my_drac_comment comment (muted)   $my_drac_purple  purple
+#   $my_drac_cyan    cyan              $my_drac_red     red
+#   $my_drac_yellow  yellow
+source "~/src/env/email/neomutt/dracula-palette|"
+
+# ---------------------------------------------------------------- general
+color normal      $my_drac_fg      $my_drac_bg
+color indicator   $my_drac_fg      $my_drac_current
+color error       $my_drac_red     $my_drac_bg
+color warning     $my_drac_orange  $my_drac_bg
+color message     $my_drac_cyan    $my_drac_bg
+color markers     $my_drac_red     $my_drac_bg
+color tilde       $my_drac_comment $my_drac_bg
+color tree        $my_drac_purple  $my_drac_bg
+color search      $my_drac_bg      $my_drac_yellow
+color signature   $my_drac_comment $my_drac_bg
+color attachment  $my_drac_orange  $my_drac_bg
+color prompt      $my_drac_fg      $my_drac_bg
+color options     $my_drac_green   $my_drac_bg
+color progress    $my_drac_bg      $my_drac_purple
+color bold        $my_drac_orange  $my_drac_bg
+color underline   $my_drac_cyan    $my_drac_bg
+
+# ------------------------------------------------------------- status bar
+color status      $my_drac_fg      $my_drac_current
+# Counters worth noticing, tinted in place on the status line.
+color status      $my_drac_green   $my_drac_current '(New|Inc):[0-9]+'
+color status      $my_drac_red     $my_drac_current '(Del|Flag):[0-9]+'
+color status      $my_drac_orange  $my_drac_current '(Old|Post):[0-9]+'
+
+# ------------------------------------------------------------------ pager
+color hdrdefault  $my_drac_comment $my_drac_bg
+color header      $my_drac_cyan    $my_drac_bg "^(From|To|Cc|Bcc):"
+color header      $my_drac_purple  $my_drac_bg "^Subject:"
+color header      $my_drac_comment $my_drac_bg "^Date:"
+
+# Quote levels cycle through the palette so a deep thread stays readable.
+color quoted      $my_drac_comment $my_drac_bg
+color quoted1     $my_drac_cyan    $my_drac_bg
+color quoted2     $my_drac_green   $my_drac_bg
+color quoted3     $my_drac_yellow  $my_drac_bg
+color quoted4     $my_drac_orange  $my_drac_bg
+color quoted5     $my_drac_pink    $my_drac_bg
+color quoted6     $my_drac_purple  $my_drac_bg
+color quoted7     $my_drac_red     $my_drac_bg
+color quoted8     $my_drac_cyan    $my_drac_bg
+color quoted9     $my_drac_green   $my_drac_bg
+
+# URLs and addresses in the body, which matter here because auto_view turns
+# HTML mail into text and the links end up inline.
+color body        $my_drac_cyan    $my_drac_bg "(https?|ftp)://[-a-zA-Z0-9@:%._\\+~#=/?&]+"
+color body        $my_drac_cyan    $my_drac_bg "[-a-z_0-9.+]+@[-a-z_0-9.]+"
+color body        $my_drac_orange  $my_drac_bg "\\*[-a-zA-Z0-9_]+\\*"
+color body        $my_drac_yellow  $my_drac_bg "_[-a-zA-Z0-9]+_"
+
+# ------------------------------------------------------------------ index
+# Matching rules are applied in order, so this reads worst-to-best: the state
+# that most needs attention is listed last and wins.
+color index       $my_drac_fg      $my_drac_bg "~A"
+color index       $my_drac_comment $my_drac_bg "~R"
+color index       $my_drac_cyan    $my_drac_bg "~N"
+color index       $my_drac_pink    $my_drac_bg "~F"
+color index       $my_drac_green   $my_drac_bg "~P"
+color index       $my_drac_red     $my_drac_bg "~D"
+color index       $my_drac_bg      $my_drac_yellow "~T"
+
+color index_number    $my_drac_comment $my_drac_bg
+color index_date      $my_drac_comment $my_drac_bg
+color index_author    $my_drac_green   $my_drac_bg "~A"
+color index_author    $my_drac_orange  $my_drac_bg "~N"
+color index_subject   $my_drac_fg      $my_drac_bg "~A"
+color index_subject   $my_drac_cyan    $my_drac_bg "~N"
+color index_size      $my_drac_comment $my_drac_bg
+color index_collapsed $my_drac_purple  $my_drac_bg
+color index_flags     $my_drac_pink    $my_drac_bg "~A"
+color index_label     $my_drac_yellow  $my_drac_bg
+# notmuch tags, for the virtual mailboxes.
+color index_tag       $my_drac_purple  $my_drac_bg
+color index_tags      $my_drac_purple  $my_drac_bg
+
+# ---------------------------------------------------------------- sidebar
+color sidebar_background $my_drac_fg      $my_drac_bg
+color sidebar_divider    $my_drac_current $my_drac_bg
+color sidebar_ordinary   $my_drac_comment $my_drac_bg
+color sidebar_spool_file $my_drac_fg      $my_drac_bg
+color sidebar_unread     $my_drac_cyan    $my_drac_bg
+color sidebar_new        $my_drac_green   $my_drac_bg
+color sidebar_flagged    $my_drac_pink    $my_drac_bg
+color sidebar_highlight  $my_drac_fg      $my_drac_current
+color sidebar_indicator  $my_drac_bg      $my_drac_purple
+
+# ---------------------------------------------------------------- compose
+color compose_header           $my_drac_cyan   $my_drac_bg
+color compose_security_none    $my_drac_red    $my_drac_bg
+color compose_security_sign    $my_drac_yellow $my_drac_bg
+color compose_security_encrypt $my_drac_orange $my_drac_bg
+color compose_security_both    $my_drac_green  $my_drac_bg

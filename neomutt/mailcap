@@ -1,0 +1,42 @@
+# Mailcap for neomutt.  neomuttrc prepends this file to $mailcap_path, so
+# these entries win over /etc/mailcap, whose only text/html line is
+#
+#     text/html; /usr/bin/xdg-open %s ; copiousoutput
+#
+# and that is wrong in both directions: "copiousoutput" promises rendered
+# text on stdout, so "auto_view text/html" runs it and gets nothing back to
+# display, and it fires a GUI browser at every HTML mail that scrolls past.
+#
+# Order matters here, and is the whole trick.  Per RFC1524 and the neomutt
+# manual ("Search Order"), non-interactive display -- $auto_view and inline
+# rendering in the pager -- considers *only* copiousoutput entries, while
+# interactive display via <view-mailcap> ignores the tag and takes the first
+# matching entry.  So the browser entry goes first and the w3m entry last:
+# reading a message gets w3m, and Ctrl-B (see neomuttrc) gets xdg-open.
+
+# Interactive only, i.e. <view-mailcap>.  The trailing "&" hands control back
+# to neomutt immediately instead of blocking until the browser exits, and
+# x-neomutt-keep stops neomutt deleting the temp file out from under it --
+# $timeout is 15s here, nowhere near enough for a cold browser start.
+#
+# Caveat worth knowing: this renders the mail as the sender wrote it, so
+# remote images and tracking pixels load.  That is the point of the binding,
+# but it is not the same privacy posture as the w3m entry below.
+text/html; xdg-open %s &; x-neomutt-keep; nametemplate=%s.html
+
+# Inline: $auto_view and <view-attach>.  w3m is the best of the terminal
+# browsers for mail, because it lays tables out instead of flattening them
+# and most HTML mail is built from nested tables.
+#   -I %{charset}          the part's charset.  Never empty: neomutt fills in
+#                          a default charset parameter for every text/* part.
+#   -T text/html           trust that, not the temp file's extension
+#   -dump                  render to stdout and exit, rather than going
+#                          interactive
+#   -cols ${COLUMNS:-80}   neomutt exports COLUMNS as the *pager* width, which
+#                          is the terminal minus the 24-column sidebar
+#   display_link_number=1  number the links and list their targets at the end;
+#                          without it every href is invisible in a dump
+# No %s, so neomutt pipes the part in on stdin and no temp file is made.
+# x-neomutt-nowrap stops neomutt re-wrapping text w3m already wrapped to
+# $COLUMNS, which is what mangles indented quotes and code blocks.
+text/html; w3m -I %{charset} -T text/html -dump -cols ${COLUMNS:-80} -o display_link_number=1; copiousoutput; x-neomutt-nowrap

@@ -1,0 +1,26 @@
+# notmuch configuration for the host (or toolbox), so that "notmuch search"
+# and neomutt's virtual mailboxes read the same index the notmuch container
+# maintains.  Installed as ~/.config/notmuch/default/config by
+# "make neomutt-install".
+#
+# The index itself lives at ~/Mail/.notmuch, inside the maildir-data volume.
+# Filenames are stored relative to the mail root, so the container seeing the
+# maildir as /var/mail and the host seeing it as ~/Mail costs nothing.
+#
+# Do NOT run "notmuch new" from here: the host notmuch (0.40) is newer than
+# the container's (0.39) and could upgrade the database format out from under
+# it.  The container's 30s "notmuch new" loop owns indexing; read and tag
+# only from this side.
+
+[database]
+path=/home/evan/Mail
+
+[user]
+name=Evan
+primary_email=aeroevan@gmail.com
+
+[maildir]
+synchronize_flags=true
+
+[search]
+exclude_tags=deleted;spam;

@@ -1,0 +1,24 @@
+// pizauth configuration - account "aeroevan@gmail.com" (Gmail)
+// Edit the EDIT-ME values: create an OAuth client at
+// https://console.cloud.google.com/apis/credentials (type: web application)
+// and add http://localhost:18080/ as an authorised redirect URI.
+
+// OAuth2 callback listener.  The quadlet publishes this on the host as
+// 127.0.0.1:18080, which must match redirect_uri below.
+http_listen = "0.0.0.0:8080";
+
+// Logged to the journal; check with:  podman logs pizauth
+auth_notify_cmd = "echo \"pizauth: open $PIZAUTH_URL in a browser to authorise account '$PIZAUTH_ACCOUNT'\"";
+error_notify_cmd = "echo \"pizauth: error for account '$PIZAUTH_ACCOUNT': $PIZAUTH_MSG\"";
+
+account "aeroevan@gmail.com" {
+    auth_uri = "https://accounts.google.com/o/oauth2/auth";
+    token_uri = "https://oauth2.googleapis.com/token";
+    client_id = "YOUR_CLIENT_ID.apps.googleusercontent.com";
+    client_secret = "YOUR_CLIENT_SECRET";
+    redirect_uri = "http://localhost:18080/";
+    scopes = [
+        "https://mail.google.com/"
+    ];
+    auth_uri_fields = {"login_hint": "aeroevan@gmail.com"};
+}

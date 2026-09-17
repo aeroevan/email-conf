@@ -1,0 +1,21 @@
+# notmuch: indexes the maildir in the shared maildir-data volume, which the
+# mbsync container fills from IMAP.
+#
+# Search mail from the host:
+#   podman exec notmuch sh -c 'cd /var/mail && notmuch search from:aeroevan@gmail.com'
+#   podman exec notmuch sh -c 'cd /var/mail && notmuch show <message-id>'
+
+FROM debian:stable-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends notmuch \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /var/mail /root/.config/notmuch \
+    && printf '[database]\npath = /var/mail\n\n[user]\nname=Evan\nprimary_email=aeroevan@gmail.com\n\n[maildir]\nsynchronize_flags = true\n' > /root/.config/notmuch/notmuchrc
+
+# notmuch 0.39 does not find the config via XDG paths on its own.
+ENV NOTMUCH_CONFIG=/root/.config/notmuch/notmuchrc
+
+# Keep the container alive, picking up new mail into the index every 30s.
+# The notmuch database is created under /var/mail/.notmuch on first run.
+CMD ["/bin/sh", "-c", "while :; do cd /var/mail && notmuch new; sleep 30; done"]

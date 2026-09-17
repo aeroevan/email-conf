@@ -1,0 +1,171 @@
+# neomutt configuration for the pizauth + mbsync + msmtp + notmuch setup.
+#
+# Unlike the other components, neomutt runs on the host (or in a toolbox),
+# not in a container: it is interactive, and it needs direct access to the
+# maildir to rename files when flags change.
+#
+# It reaches the three moving parts like this:
+#   - reading   : the maildir-data podman volume, symlinked to ~/Mail by
+#                 "make neomutt-install" (the volume's _data directory is
+#                 plain host storage owned by this user, so no container is
+#                 involved).  mbsync fills it; neomutt's flag changes are
+#                 rename()s that mbsync propagates back to Gmail on its next
+#                 pass, because isync's default "Sync All" includes flags.
+#   - searching : the notmuch index the notmuch container maintains at
+#                 ~/Mail/.notmuch, opened read/write through libnotmuch.
+#   - sending   : neomutt/msmtp-send, which pipes the message into the msmtp
+#                 container (see that script).
+#
+# Install:  make neomutt-install    (symlinks this file to
+#           ~/.config/neomutt/neomuttrc, so edits here take effect at once)
+
+# ---------------------------------------------------------------- identity
+set realname = "Evan"
+set from     = "aeroevan@gmail.com"
+set use_from = yes
+# Gmail rewrites the envelope sender to the authenticated account anyway.
+set envelope_from = yes
+
+# ----------------------------------------------------------------- folders
+set folder     = "~/Mail"
+set mbox_type  = Maildir
+set spool_file = "+INBOX"
+
+# mbsync only syncs the "inbox" and "sent" channels, so anything else under
+# ~/Mail is local-only and is left alone by mbsync -a.  Drafts never need to
+# leave this machine, so a local maildir is the right home for them.
+set postponed = "+Drafts"
+
+# No $trash on purpose.  mbsyncrc sets "Expunge None", so a message deleted
+# locally is simply re-downloaded on the next pass, and a local +Trash folder
+# would never reach Gmail because no channel covers it.  d marks the message
+# deleted, which mbsync propagates to Gmail as the \Deleted flag; to get real
+# Gmail-side archiving or deletion, add the matching channel to mbsyncrc
+# ([Gmail]/All Mail, [Gmail]/Trash) and set $trash here to match.
+
+# Gmail's SMTP server files every message it accepts into [Gmail]/Sent Mail
+# by itself, and mbsync's "sent" channel pulls that back into ~/Mail/Sent.
+# Recording an Fcc locally as well would give two copies of every sent mail.
+set record = ""
+
+mailboxes "+INBOX" "+Sent"
+
+# Neither mbsync nor notmuch touches the mailbox while neomutt has it open in
+# a way neomutt can detect on its own, so poll the directories directly.
+set mail_check       = 5
+set mail_check_stats = yes
+set timeout          = 15
+
+# ----------------------------------------------------------------- sending
+set sendmail = "~/src/env/email/neomutt/msmtp-send"
+# Wait for the shim so a container or OAuth failure is reported in the UI
+# instead of disappearing into a background job.
+set sendmail_wait = 0
+
+# Explicit, rather than falling through to $VISUAL/$EDITOR: $EDITOR is nano
+# here, which is the right default for a quick commit message and the wrong
+# one for a mail body.  No mail-specific flags are needed -- neomutt composes
+# in /tmp/neomutt-<host>-<uid>-<pid>-<hex>, which nvim's own filetype rules
+# match as "mail", so the mail ftplugin gives textwidth=72, format-flowed
+# wrapping and quote-aware gq (comments carries "n:>") without any help.
+#
+# The -c argument is only there because $edit_headers puts the headers in the
+# buffer, so nvim would otherwise open on the From: line every time.  "}" is
+# a paragraph jump to the blank line that separates headers from body and "j"
+# steps onto the first body line -- on a reply that is the attribution line,
+# above the quoted text.  Deliberately not a "+/^$" search: that leaves the
+# pattern in the search register lighting up every blank line, and its "+1"
+# offset is an error on a new message, where the blank separator is the last
+# line in the file.  A "j" that runs off the end just stops.
+set editor = "nvim -c 'normal! }j'"
+
+set edit_headers = yes
+set fast_reply   = yes
+set include      = yes
+set forward_quote = yes
+
+# ----------------------------------------------------------------- notmuch
+# The database lives inside the maildir, where the notmuch container put it.
+set nm_default_url  = "notmuch:///home/evan/Mail"
+set nm_record       = no
+set nm_query_type   = "messages"
+set nm_exclude_tags = "deleted,spam"
+# Keep the "unread" tag and the maildir S flag in step, in both directions.
+set nm_unread_tag   = "unread"
+set nm_flagged_tag  = "flagged"
+set nm_replied_tag  = "replied"
+
+virtual-mailboxes \
+    "Unread"  "notmuch://?query=tag:unread" \
+    "Today"   "notmuch://?query=date:today" \
+    "Week"    "notmuch://?query=date:7d.." \
+    "Flagged" "notmuch://?query=tag:flagged" \
+    "Attach"  "notmuch://?query=tag:attachment AND date:30d.."
+
+# X opens an ad-hoc notmuch query as a virtual mailbox; A adds and D removes
+# tags on the highlighted message.
+bind index,pager X vfolder-from-query
+bind index       A entire-thread
+macro index,pager \Ct "<modify-labels>" "modify notmuch tags"
+
+# -------------------------------------------------------------------- view
+set sort      = threads
+set sort_aux  = reverse-last-date-received
+set sort_re   = yes
+set date_format = "%y-%m-%d %H:%M"
+set index_format = "%4C %Z %[%y-%m-%d %H:%M] %-22.22L (%?l?%4l&%4c?) %s"
+
+set pager_index_lines = 8
+set pager_context     = 3
+set pager_stop        = yes
+set menu_scroll       = yes
+set tilde             = yes
+set markers           = no
+
+set sidebar_visible     = yes
+set sidebar_width       = 24
+set sidebar_short_path  = yes
+set sidebar_format      = "%D%?F? [%F]?%* %?N?%N/?%S"
+bind index,pager \Cp sidebar-prev
+bind index,pager \Cn sidebar-next
+bind index,pager \Co sidebar-open
+
+# Gmail keeps 11k+ messages in INBOX; a header cache keeps opening it quick.
+set header_cache = "~/.cache/neomutt/headers"
+set message_cachedir = "~/.cache/neomutt/bodies"
+
+# Absolute path for the same reason as $sendmail and the colour file below.
+# This must come before auto_view, and it shadows rather than replaces the
+# rest of the default search path, so image and PDF attachments still reach
+# xdg-open through /etc/mailcap.
+set mailcap_path = "~/src/env/email/neomutt/mailcap:~/.mailcap:/usr/share/neomutt/mailcap:/etc/mailcap:/usr/etc/mailcap:/usr/local/etc/mailcap"
+
+# Render HTML inline with w3m; see the mailcap file for why the order of the
+# two text/html entries in it is what selects w3m here and xdg-open on Ctrl-B.
+auto_view text/html
+
+# Still plain-text first where the sender bothered to send both, so most mail
+# never reaches the w3m entry at all.  Drop text/plain from this list to see
+# the rendered version even when a text part exists.
+alternative_order text/plain text/enriched text/html
+
+# ------------------------------------------------------------------ colors
+# Absolute path, like $sendmail above: neomuttrc itself is reached through a
+# symlink in ~/.config/neomutt, and neomutt resolves a relative source path
+# against the current directory, not against the sourcing file.
+source "~/src/env/email/neomutt/dracula.muttrc"
+
+# ----------------------------------------------------------------- bindings
+bind index,pager g  noop
+bind index      gg  first-entry
+bind index      G   last-entry
+bind pager      g   top
+bind pager      G   bottom
+macro index,pager \CR "<shell-escape>podman --remote exec mbsync mbsync -a<enter>" "sync now"
+
+# Open the HTML part in the real browser, for the mail w3m cannot do justice
+# to.  <view-mailcap> (not <view-attach>) is the function that ignores the
+# copiousoutput tag and so picks the xdg-open entry; <search> is how we land
+# on the text/html part without assuming which attachment number it is.
+# Ctrl-B is unbound by default in both menus -- ^B is a line-editor key only.
+macro index,pager \Cb "<view-attachments><search>text/html<enter><view-mailcap><exit>" "open the HTML part with xdg-open"

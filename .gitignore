@@ -1,0 +1,10 @@
+# pizauth.conf holds the Google OAuth client_id and client_secret.  It is
+# mounted read-only into the container at runtime; keep the real one out of
+# git and track pizauth.conf.example instead.
+pizauth/pizauth.conf
+
+# Local backups made before editing configs in place.
+*.bak-*
+
+__pycache__/
+*.pyc

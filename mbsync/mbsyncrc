@@ -1,0 +1,69 @@
+# mbsync (isync 1.5.1) configuration - fetches mail from Gmail's IMAP into
+# the maildir in the shared maildir-data volume, authenticating with an
+# OAuth2 (XOAUTH2) token fetched from the pizauth daemon.
+#
+# The pizauth account name in PassCmd must match the account block in
+# pizauth/pizauth.conf.  The maildir is indexed by the notmuch container,
+# so mail sent via msmtp shows up in the index once mbsync fetches the
+# [Gmail]/Sent Mail folder.
+#
+# Syntax notes (isync 1.5.1, not modern isync):
+#   - sections are delimited by blank lines
+#   - the IMAP account is an "IMAPStore" (not "IMAPAccount")
+#   - the maildir root is "Path" (not "Maildir"); with SubFolders Verbatim
+#     it must have a trailing slash (mailbox "Sent" lands at Path/Sent);
+#     "Inbox" is not relative to Path, so it is set explicitly
+#   - mailbox pairs are "Channel"s with "Far :store:box" / "Near :store:box"
+#     (a leading colon is mandatory; box names with spaces are quoted)
+#   - "TLSType IMAPS" = implicit TLS on port 993
+#   - the xoauth2 SASL plugin (see Containerfile) registers the XOAUTH2
+#     mechanism with cyrus-sasl; it builds the RFC 6278 response from the
+#     raw token that PassCmd outputs
+
+# Everything is pulled; only FLAG changes are ever pushed.
+#
+# "Sync" otherwise defaults to Full ("New Upgrade Gone Flags") in both
+# directions, and the push half is pure liability here:
+#   - PushNew re-uploaded 1,229 old messages to Gmail on 2026-09-15 after the
+#     sync state was lost, and would upload all 409k of /var/mail/Archive if a
+#     channel were ever added for Gmail's own "Archive" label (Path +
+#     SubFolders Verbatim resolve ":gmail-local:Archive" to that directory).
+#   - PushGone means deleting maildir files marks the far-side copies \Deleted,
+#     which is why deduplicating the maildir required fast-forwarding the state
+#     first.
+# Neither is wanted: msmtp sends the mail, Gmail files it under
+# [Gmail]/Sent Mail, and the sent channel pulls it back.
+#
+# PushFlags is kept deliberately: notmuch runs with synchronize_flags = true,
+# so reading or starring mail locally rewrites maildir flags, and those should
+# still reach Gmail.  Flag changes cannot duplicate or delete mail.
+# (Compound direction+type flags per mbsync(1): each asserts one cell.)
+Sync PullNew PullUpgrade PullGone PullFlags PushFlags
+Create Both
+Expunge None
+
+IMAPStore gmail
+Host imap.gmail.com
+User aeroevan@gmail.com
+PassCmd "pizauth show aeroevan@gmail.com"
+AuthMechs XOAUTH2
+TLSType IMAPS
+PipelineDepth 1
+# The default is 20s, which produced a steady stream of "Socket error on
+# imap.gmail.com: timeout" during the bulk backfill, each one killing the run
+# mid-sync.  Gmail throttles hard once the 2500 MB/day cap is in sight, so give
+# it room to answer.
+Timeout 120
+
+MaildirStore gmail-local
+Path /var/mail/
+Inbox /var/mail/INBOX
+SubFolders Verbatim
+
+Channel inbox
+Far :gmail:INBOX
+Near :gmail-local:INBOX
+
+Channel sent
+Far ":gmail:[Gmail]/Sent Mail"
+Near :gmail-local:Sent

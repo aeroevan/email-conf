@@ -1,0 +1,32 @@
+# Quadlet: msmtp mail submission via pizauth OAuth2 (rootless systemd user unit)
+#
+# Install:
+#   1. podman build -t local/email-msmtp:latest -f msmtp/Containerfile msmtp/
+#   2. Edit msmtp/msmtp.conf (host, from, user)
+#   3. install -Dm644 msmtp/msmtp.container ~/.config/containers/systemd/
+#   4. systemctl --user daemon-reload
+#      (the [Install] section of the quadlet enables it; "systemctl enable"
+#       of a generated quadlet unit is not possible)
+#
+# Mail is sent by piping to the container:
+#   echo "body" | podman exec -i msmtp msmtpq -C /etc/msmtprc -t rcpt@example.com
+# Anything that fails to send is queued in the msmtp-data volume and retried
+# by the container's flush loop.
+
+[Unit]
+Description=msmtp mail submission (pizauth OAuth2)
+After=pizauth.service network-online.target
+Wants=network-online.target
+
+[Container]
+ContainerName=msmtp
+Image=local/email-msmtp:latest
+Volume=%h/.local/state/pizauth-run:/run/pizauth:z
+Volume=%h/src/env/email/msmtp/msmtp.conf:/etc/msmtprc:ro,z
+Volume=msmtp-data:/root/.msmtp:z
+
+[Service]
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

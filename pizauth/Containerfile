@@ -1,0 +1,37 @@
+# pizauth - OAuth2 token daemon (https://github.com/ltratt/pizauth)
+#
+# Build:  podman build -t local/email-pizauth:latest -f pizauth/Containerfile pizauth/
+
+FROM rust:1.97-bookworm AS pizauth-build
+
+ARG PIZAUTH_REF=pizauth-1.1.0
+
+WORKDIR /pizauth
+RUN git clone --depth 1 --branch ${PIZAUTH_REF} https://github.com/ltratt/pizauth . \
+    && cargo build --release
+
+FROM debian:stable-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /etc/pizauth /run/pizauth /var/lib/pizauth
+
+# pizauth reads $XDG_CONFIG_HOME/pizauth.conf and places its unix socket in
+# $XDG_RUNTIME_DIR/pizauth/pizauth.sock.  The /run/pizauth directory is
+# bind-mounted into the msmtp container as well, so that msmtp's
+# `passwordeval pizauth show aeroevan@gmail.com` can reach the daemon.
+ENV SHELL=/bin/sh \
+    HOME=/root \
+    XDG_RUNTIME_DIR=/run/pizauth \
+    XDG_CONFIG_HOME=/etc/pizauth \
+    XDG_DATA_HOME=/var/lib/pizauth
+
+COPY --from=pizauth-build /pizauth/target/release/pizauth /usr/local/bin/pizauth
+COPY entrypoint.sh /usr/local/bin/pizauth-entrypoint
+
+# The entrypoint runs `pizauth server -d -vv` in the foreground and adds
+# dump/restore around it, so the refresh token survives a container restart.
+# Without it every restart needs a browser reauthorisation: pizauth holds
+# tokens in memory only, and the quadlet runs with AutoRemove.
+CMD ["/usr/local/bin/pizauth-entrypoint"]

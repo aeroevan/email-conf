@@ -1,0 +1,34 @@
+# Quadlet: mbsync IMAP fetch via pizauth OAuth2 (rootless systemd user unit)
+#
+# Install:
+#   1. podman build -t local/email-mbsync:latest -f mbsync/Containerfile mbsync/
+#   2. Edit mbsync/mbsyncrc (host, user, boxes)
+#   3. install -Dm644 mbsync/mbsync.container ~/.config/containers/systemd/
+#   4. systemctl --user daemon-reload
+#      (the [Install] section of the quadlet enables it; "systemctl enable"
+#       of a generated quadlet unit is not possible)
+#
+# Mail is fetched into the shared maildir-data volume (/var/mail), which the
+# notmuch container indexes.  Watch it work:  podman logs -f mbsync
+
+[Unit]
+Description=mbsync IMAP fetch (pizauth OAuth2)
+After=pizauth.service network-online.target
+Wants=network-online.target
+
+[Container]
+ContainerName=mbsync
+Image=local/email-mbsync:latest
+Volume=%h/.local/state/pizauth-run:/run/pizauth:z
+Volume=%h/src/env/email/mbsync/mbsyncrc:/root/.mbsyncrc:ro,z
+Volume=maildir-data:/var/mail
+# The isync sync state (UID maps) must outlive the container: podman runs it
+# with AutoRemove, so without this the state is wiped on every restart and
+# mbsync re-pulls - and re-uploads - the whole mailbox.
+Volume=%h/.local/state/isync:/root/.local/state/isync:z
+
+[Service]
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

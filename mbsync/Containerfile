@@ -1,0 +1,33 @@
+# mbsync (isync) + pizauth CLI: fetch IMAP mail using OAuth2 (XOAUTH2)
+# tokens from the pizauth daemon (shared unix socket via /run/pizauth).
+#
+# Debian's isync 1.5.1 has no XOAUTH2 of its own: it delegates SASL
+# mechanisms to cyrus-sasl, and no distro ships an xoauth2 SASL plugin.
+# So we compile one (MIT-licensed, from moriyoshi/cyrus-sasl-xoauth2,
+# vendored in sasl-xoauth2/) and drop it into cyrus-sasl's plugin
+# directory; the plugin registers the XOAUTH2 mechanism and builds the
+# RFC 6278 response from the raw token PassCmd outputs.
+#
+# Built on top of the pizauth image, which provides the pizauth binary and
+# the XDG_* environment variables.  Build it first:
+#   podman build -t local/email-pizauth:latest -f pizauth/Containerfile pizauth/
+#   podman build -t local/email-mbsync:latest -f mbsync/Containerfile mbsync/
+
+FROM local/email-pizauth:latest
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends isync gcc libc6-dev libsasl2-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /var/mail
+
+COPY sasl-xoauth2/ /tmp/sasl-xoauth2/
+
+RUN cd /tmp/sasl-xoauth2 \
+    && gcc -shared -fPIC -o /usr/lib/x86_64-linux-gnu/sasl2/libxoauth2.so \
+         xoauth2_str.c xoauth2_init.c xoauth2_server.c xoauth2_client.c \
+    && rm -rf /tmp/sasl-xoauth2
+
+# Keep the container alive, syncing all mailboxes every minute.
+# The maildir lives in the shared maildir-data volume, which the notmuch
+# container indexes.
+CMD ["/bin/sh", "-c", "while :; do mbsync -a; sleep 60; done"]

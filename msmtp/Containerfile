@@ -1,0 +1,37 @@
+# msmtp + pizauth CLI: submit mail over SMTP using OAuth2 (XOAUTH2) tokens
+# obtained from the pizauth daemon (shared unix socket via /run/pizauth).
+#
+# Built on top of the pizauth image, which provides the pizauth binary and
+# the XDG_* environment variables.  Build it first:
+#   podman build -t local/email-pizauth:latest -f pizauth/Containerfile pizauth/
+#   podman build -t local/email-msmtp:latest -f msmtp/Containerfile msmtp/
+
+FROM local/email-pizauth:latest
+
+# Debian ships msmtpq and its msmtp-queue wrapper under /usr/libexec, off the
+# PATH; link them so both this image's CMD and "podman exec" can call them.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends msmtp \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /root/.msmtp \
+    && ln -s /usr/libexec/msmtp/msmtpq/msmtpq /usr/bin/msmtpq \
+    && ln -s /usr/libexec/msmtp/msmtpq/msmtp-queue /usr/bin/msmtp-queue
+
+# Queue state lives under the msmtp-data volume mounted at /root/.msmtp, so
+# mail queued while offline survives container restarts.
+#
+# EMAIL_CONN_TEST=x disables msmtpq's own connectivity probe: it defaults to
+# pinging debian.org, and this image has neither ping nor nc, so the probe
+# would fail and queue every message without ever attempting a send.  Letting
+# msmtp make the connection itself gives the same queue-on-failure behaviour.
+ENV MSMTPQ_Q=/root/.msmtp/queue \
+    MSMTPQ_LOG=/root/.msmtp/msmtpq.log \
+    EMAIL_CONN_TEST=x \
+    NOTIFY_SEND=0
+
+# Keep the container alive, retrying queued mail every minute.  msmtpq prints
+# "mail queue is empty" on every run -- that message bypasses its own quiet
+# flag -- so only call it when something is actually queued; otherwise the
+# loop would be just as noisy in the journal as the broken one it replaces.
+# Sending:  podman exec -i msmtp msmtpq -C /etc/msmtprc -t rcpt@example.com
+CMD ["/bin/sh", "-c", "while :; do ls $MSMTPQ_Q/*.mail >/dev/null 2>&1 && msmtp-queue -r; sleep 60; done"]

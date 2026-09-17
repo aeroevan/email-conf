@@ -1,0 +1,61 @@
+#!/bin/sh
+# Emits the Dracula palette as neomutt "my_" variables, for dracula.muttrc to
+# source through:  source "~/src/env/email/neomutt/dracula-palette|"
+#
+# Why a script instead of literal colors in the theme: neomutt only accepts
+# the #RRGGBB syntax when ncurses reports a 24-bit palette, which happens
+# only for a "-direct" terminfo entry (foot-direct, xterm-direct).  Under a
+# plain TERM=foot every hex color is refused with "color not supported by
+# term" and the theme lands half-applied.  So ask terminfo what this terminal
+# can do and hand back the matching set of values.
+#
+# To get the exact Dracula shades in foot, add to ~/.config/foot/foot.ini:
+#     [main]
+#     term=foot-direct
+# Otherwise the xterm-256 approximations below are used; they are the same
+# ones the other Dracula ports use, and they are close but not exact.
+set -eu
+
+if [ "$(tput colors 2>/dev/null || echo 0)" -ge 16777216 ]; then
+    # 24-bit: the canonical palette from https://draculatheme.com
+    echo 'set color_directcolor = yes'
+    echo 'set my_drac_bg      = "#282a36"'
+    echo 'set my_drac_current = "#44475a"'
+    echo 'set my_drac_fg      = "#f8f8f2"'
+    echo 'set my_drac_comment = "#6272a4"'
+    echo 'set my_drac_cyan    = "#8be9fd"'
+    echo 'set my_drac_green   = "#50fa7b"'
+    echo 'set my_drac_orange  = "#ffb86c"'
+    echo 'set my_drac_pink    = "#ff79c6"'
+    echo 'set my_drac_purple  = "#bd93f9"'
+    echo 'set my_drac_red     = "#ff5555"'
+    echo 'set my_drac_yellow  = "#f1fa8c"'
+elif [ "$(tput colors 2>/dev/null || echo 0)" -ge 256 ]; then
+    # Nearest xterm-256 entries.
+    echo 'set my_drac_bg      = "color236"'
+    echo 'set my_drac_current = "color238"'
+    echo 'set my_drac_fg      = "color231"'
+    echo 'set my_drac_comment = "color61"'
+    echo 'set my_drac_cyan    = "color117"'
+    echo 'set my_drac_green   = "color84"'
+    echo 'set my_drac_orange  = "color215"'
+    echo 'set my_drac_pink    = "color212"'
+    echo 'set my_drac_purple  = "color141"'
+    echo 'set my_drac_red     = "color203"'
+    echo 'set my_drac_yellow  = "color228"'
+else
+    # 8/16 colours -- a linux VT, or a TERM with no 256-colour entry.  Not
+    # Dracula in any real sense, just the same roles in the colours that do
+    # exist, so the config still loads without a screenful of errors.
+    echo 'set my_drac_bg      = "default"'
+    echo 'set my_drac_current = "black"'
+    echo 'set my_drac_fg      = "white"'
+    echo 'set my_drac_comment = "brightblack"'
+    echo 'set my_drac_cyan    = "cyan"'
+    echo 'set my_drac_green   = "green"'
+    echo 'set my_drac_orange  = "yellow"'
+    echo 'set my_drac_pink    = "brightmagenta"'
+    echo 'set my_drac_purple  = "magenta"'
+    echo 'set my_drac_red     = "red"'
+    echo 'set my_drac_yellow  = "brightyellow"'
+fi
