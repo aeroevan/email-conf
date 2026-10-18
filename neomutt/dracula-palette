@@ -1,6 +1,6 @@
 #!/bin/sh
 # Emits the Dracula palette as neomutt "my_" variables, for dracula.muttrc to
-# source through:  source "~/src/env/email/neomutt/dracula-palette|"
+# source through:  source "~/.config/neomutt/dracula-palette|"
 #
 # Why a script instead of literal colors in the theme: neomutt only accepts
 # the #RRGGBB syntax when ncurses reports a 24-bit palette, which happens

@@ -20,8 +20,10 @@
 #   - sending   : neomutt/msmtp-send, which pipes the message into the msmtp
 #                 container (see that script).
 #
-# Install:  make neomutt-install    (symlinks this file to
-#           ~/.config/neomutt/neomuttrc, so edits here take effect at once)
+# Install:  make neomutt-install    (symlinks this file and its helper
+#           scripts into ~/.config/neomutt, so edits here take effect at
+#           once; everything below reaches the helpers through those links,
+#           so nothing here depends on where the repo is cloned)
 
 # ---------------------------------------------------------------- identity
 set realname = "Evan"
@@ -66,7 +68,7 @@ set mail_check_stats = yes
 set timeout          = 15
 
 # ----------------------------------------------------------------- sending
-set sendmail = "~/src/env/email/neomutt/msmtp-send"
+set sendmail = "~/.config/neomutt/msmtp-send"
 # Wait for the shim so a container or OAuth failure is reported in the UI
 # instead of disappearing into a background job.
 set sendmail_wait = 0
@@ -109,7 +111,7 @@ set forward_quote = yes
 # <create-alias> (a) appends to the config file in use -- this one, through
 # the ~/.config/neomutt symlink -- which put contacts into git.
 # "make neomutt-install" creates it, since source fails on a missing file.
-set query_command = "~/src/env/email/neomutt/contacts-query %s"
+set query_command = "~/.config/neomutt/contacts-query %s"
 bind editor \Ct complete-query
 
 set alias_file    = "~/.config/neomutt/aliases"
@@ -118,7 +120,9 @@ set reverse_alias = yes
 
 # ----------------------------------------------------------------- notmuch
 # The database lives inside the maildir, where the notmuch container put it.
-set nm_default_url  = "notmuch:///home/evan/Mail"
+# The URL needs an absolute path, so ~ will not do; $HOME is expanded inside
+# double quotes.
+set nm_default_url  = "notmuch://$HOME/Mail"
 set nm_record       = no
 set nm_query_type   = "messages"
 set nm_exclude_tags = "deleted,spam"
@@ -175,11 +179,11 @@ bind index,pager \Co sidebar-open
 set header_cache = "~/.cache/neomutt/headers"
 set message_cachedir = "~/.cache/neomutt/bodies"
 
-# Absolute path for the same reason as $sendmail and the colour file below.
+# Through ~/.config/neomutt, for the same reason as the colour file below.
 # This must come before auto_view, and it shadows rather than replaces the
 # rest of the default search path, so image and PDF attachments still reach
 # xdg-open through /etc/mailcap.
-set mailcap_path = "~/src/env/email/neomutt/mailcap:~/.mailcap:/usr/share/neomutt/mailcap:/etc/mailcap:/usr/etc/mailcap:/usr/local/etc/mailcap"
+set mailcap_path = "~/.config/neomutt/mailcap:~/.mailcap:/usr/share/neomutt/mailcap:/etc/mailcap:/usr/etc/mailcap:/usr/local/etc/mailcap"
 
 # Render HTML inline with w3m; see the mailcap file for why the order of the
 # two text/html entries in it is what selects w3m here and xdg-open on Ctrl-B.
@@ -191,10 +195,11 @@ auto_view text/html
 alternative_order text/plain text/enriched text/html
 
 # ------------------------------------------------------------------ colors
-# Absolute path, like $sendmail above: neomuttrc itself is reached through a
-# symlink in ~/.config/neomutt, and neomutt resolves a relative source path
-# against the current directory, not against the sourcing file.
-source "~/src/env/email/neomutt/dracula.muttrc"
+# Through the ~/.config/neomutt link, like $sendmail above: neomutt resolves a
+# relative source path against the current directory, not against the
+# sourcing file, so the path has to be absolute -- and the link keeps it
+# independent of where the repo is cloned.
+source "~/.config/neomutt/dracula.muttrc"
 
 # ----------------------------------------------------------------- bindings
 bind index,pager g  noop
@@ -202,7 +207,9 @@ bind index      gg  first-entry
 bind index      G   last-entry
 bind pager      g   top
 bind pager      G   bottom
-macro index,pager \CR "<shell-escape>podman --remote exec mbsync mbsync -a<enter>" "sync now"
+# mbsync-now picks plain podman or "podman --remote" itself, so this works
+# whether neomutt runs on the host or in a toolbox.
+macro index,pager \CR "<shell-escape>~/.config/neomutt/mbsync-now<enter>" "sync now"
 
 # Open the HTML part in the real browser, for the mail w3m cannot do justice
 # to.  <view-mailcap> (not <view-attach>) is the function that ignores the

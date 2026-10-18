@@ -3,11 +3,12 @@
 # Install:
 #   1. podman build -t local/email-pizauth:latest -f pizauth/Containerfile pizauth/
 #   2. Edit pizauth/pizauth.conf (client_id, client_secret, login_hint)
-#   3. install -Dm644 pizauth/pizauth.container ~/.config/containers/systemd/
-#   4. systemctl --user daemon-reload
-#      (the [Install] section of the quadlet enables it; "systemctl enable"
-#       of a generated quadlet unit is not possible)
-#   5. podman exec pizauth pizauth refresh aeroevan@gmail.com
+#   3. make install
+#      (fills in the @REPO@ and @RUN_DIR@ paths below, copies this file to
+#       ~/.config/containers/systemd/ and runs daemon-reload; the [Install]
+#       section enables the unit -- "systemctl enable" of a generated quadlet
+#       unit is not possible)
+#   4. podman exec pizauth pizauth refresh aeroevan@gmail.com
 #      # opens OAuth flow via printed URL
 #
 # The /run/pizauth bind mount is shared with the msmtp container so that the
@@ -21,8 +22,8 @@ Wants=network-online.target
 [Container]
 ContainerName=pizauth
 Image=local/email-pizauth:latest
-Volume=%h/.local/state/pizauth-run:/run/pizauth:z
-Volume=%h/src/env/email/pizauth/pizauth.conf:/etc/pizauth/pizauth.conf:ro,z
+Volume=@RUN_DIR@:/run/pizauth:z
+Volume=@REPO@/pizauth/pizauth.conf:/etc/pizauth/pizauth.conf:ro,z
 Volume=pizauth-data:/var/lib/pizauth:z
 PublishPort=127.0.0.1:18080:8080
 

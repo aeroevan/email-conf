@@ -38,7 +38,11 @@ SERVICES = pizauth msmtp mbsync notmuch
 # learn where a named volume actually lives.
 MAILDIR        ?= $(HOME)/Mail
 MAILDIR_SRC     = $(shell $(PODMAN) volume inspect maildir-data --format '{{.Mountpoint}}')
+# neomuttrc reaches its helper scripts through the links neomutt-install puts
+# in ~/.config/neomutt, so changing NEOMUTT_DIR means changing neomuttrc too.
 NEOMUTT_DIR    ?= $(HOME)/.config/neomutt
+NEOMUTT_FILES   = neomuttrc msmtp-send mbsync-now contacts-query mailcap \
+                  dracula.muttrc dracula-palette
 NOTMUCH_DIR    ?= $(HOME)/.config/notmuch/default
 
 .PHONY: all build install start stop restart status check uninstall \
@@ -53,12 +57,14 @@ build:
 	$(PODMAN) build -t $(MBSYNC_IMAGE) -f mbsync/Containerfile mbsync/
 	$(PODMAN) build -t $(NOTMUCH_IMAGE) -f notmuch/Containerfile notmuch/
 
+# The quadlets name host paths as @REPO@ (this checkout, wherever it was
+# cloned) and @RUN_DIR@; they are filled in here on the way to QUADLET_DIR.
 install:
-	mkdir -p "$(RUN_DIR)"
-	install -Dm644 pizauth/pizauth.container "$(QUADLET_DIR)/pizauth.container"
-	install -Dm644 msmtp/msmtp.container "$(QUADLET_DIR)/msmtp.container"
-	install -Dm644 mbsync/mbsync.container "$(QUADLET_DIR)/mbsync.container"
-	install -Dm644 notmuch/notmuch.container "$(QUADLET_DIR)/notmuch.container"
+	mkdir -p "$(RUN_DIR)" "$(QUADLET_DIR)"
+	for s in $(SERVICES); do \
+	    sed -e 's|@REPO@|$(CURDIR)|g' -e 's|@RUN_DIR@|$(RUN_DIR)|g' \
+	        $$s/$$s.container > "$(QUADLET_DIR)/$$s.container" || exit 1; \
+	done
 	$(SYSTEMCTL) daemon-reload
 
 start:
@@ -86,7 +92,9 @@ neomutt-install:
 	@test -n "$(MAILDIR_SRC)" || { echo "maildir-data volume not found; run 'make start' first" >&2; exit 1; }
 	ln -sfn "$(MAILDIR_SRC)" "$(MAILDIR)"
 	mkdir -p "$(NEOMUTT_DIR)" "$(NOTMUCH_DIR)" "$(HOME)/.cache/neomutt"
-	ln -sfn "$(CURDIR)/neomutt/neomuttrc" "$(NEOMUTT_DIR)/neomuttrc"
+	for f in $(NEOMUTT_FILES); do \
+	    ln -sfn "$(CURDIR)/neomutt/$$f" "$(NEOMUTT_DIR)/$$f" || exit 1; \
+	done
 	ln -sfn "$(CURDIR)/neomutt/notmuch-config" "$(NOTMUCH_DIR)/config"
 	touch "$(NEOMUTT_DIR)/aliases"
 
@@ -96,7 +104,7 @@ git-hooks:
 	git config core.hooksPath githooks
 
 neomutt-uninstall:
-	rm -f "$(NEOMUTT_DIR)/neomuttrc" "$(NOTMUCH_DIR)/config" "$(MAILDIR)"
+	rm -f $(addprefix "$(NEOMUTT_DIR)/",$(NEOMUTT_FILES)) "$(NOTMUCH_DIR)/config" "$(MAILDIR)"
 
 uninstall:
 	-$(SYSTEMCTL) stop $(SERVICES)

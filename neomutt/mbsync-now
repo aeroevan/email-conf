@@ -1,0 +1,17 @@
+#!/bin/sh
+# "Sync now" for neomutt's Ctrl-R: one mbsync pass in the mbsync container,
+# rather than waiting up to a minute for the container's own loop.
+set -eu
+
+# The same podman choice as msmtp-send: inside a toolbox container the host's
+# podman is reached over the remote socket; on the host plain podman is
+# correct.  An explicit $PODMAN wins, matching the Makefile's PODMAN variable.
+if [ -z "${PODMAN:-}" ]; then
+    if [ -f /run/.toolboxenv ]; then
+        PODMAN="podman --remote"
+    else
+        PODMAN="podman"
+    fi
+fi
+
+exec $PODMAN exec mbsync mbsync -a

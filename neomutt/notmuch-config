@@ -13,7 +13,8 @@
 # only from this side.
 
 [database]
-path=/home/evan/Mail
+# Relative paths are taken from $HOME.
+path=Mail
 
 [user]
 name=Evan

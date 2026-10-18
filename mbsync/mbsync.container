@@ -3,10 +3,11 @@
 # Install:
 #   1. podman build -t local/email-mbsync:latest -f mbsync/Containerfile mbsync/
 #   2. Edit mbsync/mbsyncrc (host, user, boxes)
-#   3. install -Dm644 mbsync/mbsync.container ~/.config/containers/systemd/
-#   4. systemctl --user daemon-reload
-#      (the [Install] section of the quadlet enables it; "systemctl enable"
-#       of a generated quadlet unit is not possible)
+#   3. make install
+#      (fills in the @REPO@ and @RUN_DIR@ paths below, copies this file to
+#       ~/.config/containers/systemd/ and runs daemon-reload; the [Install]
+#       section enables the unit -- "systemctl enable" of a generated quadlet
+#       unit is not possible)
 #
 # Mail is fetched into the shared maildir-data volume (/var/mail), which the
 # notmuch container indexes.  Watch it work:  podman logs -f mbsync
@@ -19,8 +20,8 @@ Wants=network-online.target
 [Container]
 ContainerName=mbsync
 Image=local/email-mbsync:latest
-Volume=%h/.local/state/pizauth-run:/run/pizauth:z
-Volume=%h/src/env/email/mbsync/mbsyncrc:/root/.mbsyncrc:ro,z
+Volume=@RUN_DIR@:/run/pizauth:z
+Volume=@REPO@/mbsync/mbsyncrc:/root/.mbsyncrc:ro,z
 Volume=maildir-data:/var/mail
 # The isync sync state (UID maps) must outlive the container: podman runs it
 # with AutoRemove, so without this the state is wiped on every restart and

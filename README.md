@@ -48,8 +48,9 @@ need a `make restart`.
 
 ## Setup
 
-The quadlets and the neomutt config refer to this tree as `~/src/env/email`,
-so clone it there (or see [Adapting it](#adapting-it)).
+Clone it anywhere: `make install` writes the checkout's path into the
+quadlets as it installs them, and neomutt reaches its helper scripts through
+links in `~/.config/neomutt`.
 
 1. **Create the OAuth client.**  At
    <https://console.cloud.google.com/apis/credentials>, create a client of type
@@ -90,7 +91,8 @@ so clone it there (or see [Adapting it](#adapting-it)).
 5. **Set up the host side.**
 
    ```sh
-   make neomutt-install    # ~/Mail -> the maildir volume, configs symlinked
+   make neomutt-install    # ~/Mail -> the maildir volume; configs and helper
+                           # scripts symlinked into ~/.config
    make git-hooks          # only if you will commit to this repo
    ```
 
@@ -177,17 +179,15 @@ podman exec notmuch sh -c 'cd /var/mail &&
 
 ## Adapting it
 
-The account and paths are written into the files rather than templated:
+Paths are not tied to one machine: the checkout can live anywhere, the
+maildir is `~/Mail` relative to `$HOME`, and the scripts neomutt calls work
+both on the host and inside a toolbox.  Nothing assumes x86_64 either,
+though only x86_64 has been tested.
 
-- `aeroevan@gmail.com` appears in `pizauth/`, `mbsync/mbsyncrc`,
-  `msmtp/msmtp.conf`, `notmuch/notmuchrc`, `neomutt/` and
-  `githooks/email-allowlist`.  `git grep aeroevan` finds them all.
-- `~/src/env/email` (`%h/src/env/email` in the quadlets) appears in every
-  `*.container` file and in `neomutt/`.
-- `/home/evan/Mail` appears in `neomutt/neomuttrc` and
-  `neomutt/notmuch-config`.
-- Ctrl-R's sync macro uses `podman --remote`, which is right inside a toolbox.
-  Use plain `podman` if neomutt runs directly on the host.
+The account is written into the files rather than templated.
+`aeroevan@gmail.com` appears in `pizauth/`, `mbsync/mbsyncrc`,
+`msmtp/msmtp.conf`, `notmuch/notmuchrc`, `neomutt/` and
+`githooks/email-allowlist`, and `git grep aeroevan` finds every one.
 
 ## Keeping personal data out
 

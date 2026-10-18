@@ -12,7 +12,7 @@
 #   $my_drac_comment comment (muted)   $my_drac_purple  purple
 #   $my_drac_cyan    cyan              $my_drac_red     red
 #   $my_drac_yellow  yellow
-source "~/src/env/email/neomutt/dracula-palette|"
+source "~/.config/neomutt/dracula-palette|"
 
 # ---------------------------------------------------------------- general
 color normal      $my_drac_fg      $my_drac_bg

@@ -2,10 +2,11 @@
 #
 # Install:
 #   1. podman build -t local/email-notmuch:latest -f notmuch/Containerfile notmuch/
-#   2. install -Dm644 notmuch/notmuch.container ~/.config/containers/systemd/
-#   3. systemctl --user daemon-reload
-#      (the [Install] section of the quadlet enables it; "systemctl enable"
-#       of a generated quadlet unit is not possible)
+#   2. make install
+#      (fills in the @REPO@ and @RUN_DIR@ paths below, copies this file to
+#       ~/.config/containers/systemd/ and runs daemon-reload; the [Install]
+#       section enables the unit -- "systemctl enable" of a generated quadlet
+#       unit is not possible)
 #
 # Search:  podman exec notmuch sh -c 'cd /var/mail && notmuch search date:today'
 
@@ -18,8 +19,8 @@ Wants=network-online.target
 ContainerName=notmuch
 Image=local/email-notmuch:latest
 Volume=maildir-data:/var/mail
-Volume=%h/src/env/email/notmuch/notmuchrc:/etc/notmuch/config:ro,z
-Volume=%h/src/env/email/notmuch/hooks:/etc/notmuch/hooks:ro,z
+Volume=@REPO@/notmuch/notmuchrc:/etc/notmuch/config:ro,z
+Volume=@REPO@/notmuch/hooks:/etc/notmuch/hooks:ro,z
 
 [Service]
 Restart=on-failure
