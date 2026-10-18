@@ -127,8 +127,17 @@ set nm_unread_tag   = "unread"
 set nm_flagged_tag  = "flagged"
 set nm_replied_tag  = "replied"
 
+# People, Lists, Notify and Bulk come from the notmuch container's post-new
+# hook, which tags new mail by its headers (rules in notmuch/hooks/tag-rules).
+# People is whatever no rule claimed.  All four are date-bounded: mail older
+# than the backfill carries none of these tags, so an unbounded People would
+# be the entire archive.
 virtual-mailboxes \
     "Unread"  "notmuch://?query=tag:unread" \
+    "People"  "notmuch://?query=date:30d.. AND NOT tag:lists AND NOT tag:notifications AND NOT tag:bulk" \
+    "Lists"   "notmuch://?query=tag:lists AND date:30d.." \
+    "Notify"  "notmuch://?query=tag:notifications AND date:30d.." \
+    "Bulk"    "notmuch://?query=tag:bulk AND date:7d.." \
     "Today"   "notmuch://?query=date:today" \
     "Week"    "notmuch://?query=date:7d.." \
     "Flagged" "notmuch://?query=tag:flagged" \

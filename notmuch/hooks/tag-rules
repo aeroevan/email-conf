@@ -1,0 +1,19 @@
+# Tagging rules for the post-new hook, in "notmuch tag --batch" format:
+#   +tag [-tag ...] -- query
+# The " -- " is required: the hook narrows each query to the mail being
+# classified.  Rules run in order and later ones see earlier tags, which is
+# how "bulk" leaves out what is already a list or a notification.
+#
+# The capitalised prefixes are mail headers declared in notmuchrc.  Mail
+# carrying none of these tags is mail from people (or from a sender no rule
+# knows yet -- add it here).
+
+# Automated notifications.  GitHub's carry List-Post like a real mailing
+# list, so they are claimed here first.
++notifications -- from:notifications@github.com or from:noreply@github.com or AutoSubmitted:auto
+
+# Discussion lists: mail you could reply to the list with has List-Post.
++lists -- ListPost:mailto and not tag:notifications
+
+# Newsletters and marketing: an unsubscribe link and no list to post to.
++bulk -- (Unsubscribe:mailto or Unsubscribe:http or Unsubscribe:https) and not tag:lists and not tag:notifications

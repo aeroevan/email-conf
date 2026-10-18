@@ -1,0 +1,31 @@
+# notmuch configuration for the notmuch container, mounted read-only at
+# /etc/notmuch/config.  The host's copy, neomutt/notmuch-config, points at
+# the same database through ~/Mail and must carry the same index.header lines:
+# the container needs them to index the headers, the host (and neomutt,
+# through libnotmuch) to parse queries that use the prefixes.
+
+[database]
+path=/var/mail
+# Mounted from notmuch/hooks in this tree rather than the default
+# /var/mail/.notmuch/hooks, which would put the hooks inside the mail volume.
+hook_dir=/etc/notmuch/hooks
+
+[user]
+name=Evan
+primary_email=aeroevan@gmail.com
+
+[new]
+# "new" marks what the post-new hook has yet to classify; the hook removes it.
+tags=new;inbox;unread
+
+[index]
+# Searchable header prefixes, used by notmuch/hooks/tag-rules.  Only mail
+# indexed after a line is added has the terms; older mail needs
+# "notmuch reindex" (see tag-rules).
+header.List=List-Id
+header.ListPost=List-Post
+header.Unsubscribe=List-Unsubscribe
+header.AutoSubmitted=Auto-Submitted
+
+[maildir]
+synchronize_flags=true

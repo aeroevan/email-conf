@@ -10,11 +10,13 @@ FROM debian:stable-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends notmuch \
     && rm -rf /var/lib/apt/lists/* \
-    && mkdir -p /var/mail /root/.config/notmuch \
-    && printf '[database]\npath = /var/mail\n\n[user]\nname=Evan\nprimary_email=aeroevan@gmail.com\n\n[maildir]\nsynchronize_flags = true\n' > /root/.config/notmuch/notmuchrc
+    && mkdir -p /var/mail
 
-# notmuch 0.39 does not find the config via XDG paths on its own.
-ENV NOTMUCH_CONFIG=/root/.config/notmuch/notmuchrc
+# The config (notmuch/notmuchrc) and the post-new tagging hook
+# (notmuch/hooks) are mounted read-only from this tree by the quadlet, so
+# editing them needs a restart at most, not a rebuild.  notmuch 0.39 does not
+# find the config via XDG paths on its own.
+ENV NOTMUCH_CONFIG=/etc/notmuch/config
 
 # Keep the container alive, picking up new mail into the index every 30s.
 # The notmuch database is created under /var/mail/.notmuch on first run.

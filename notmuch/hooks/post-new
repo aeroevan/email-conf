@@ -1,0 +1,31 @@
+#!/bin/sh
+# notmuch post-new hook: classify freshly indexed mail with tag-rules.
+#
+# notmuch new runs this with no arguments after tagging new mail
+# "new;inbox;unread" (see notmuchrc), so each rule is narrowed to tag:new and
+# "new" is dropped at the end.  A failed run leaves "new" in place, so the
+# next pass, 30s later, simply classifies the same mail again.
+#
+# Backfill: pass a query to apply the rules to other mail instead, e.g.
+#   podman exec notmuch /etc/notmuch/hooks/post-new 'date:1y..'
+# The header rules only match mail indexed with the index.header lines in
+# place, so reindex first:  notmuch reindex 'date:1y..'
+set -eu
+
+scope=${1:-tag:new}
+rules=$(dirname "$0")/tag-rules
+
+# Each rule is "+tag ... -- query".  Rewrite the query to "(scope) and
+# (query)"; lines without " -- " are reported rather than run unscoped.
+grep -v -e '^#' -e '^[[:space:]]*$' "$rules" |
+    awk -v scope="$scope" '
+        i = index($0, " -- ") {
+            # "*" means all mail only as a whole query, not inside "(*)".
+            if (scope == "*") print
+            else print substr($0, 1, i + 3) "(" scope ") and (" substr($0, i + 4) ")"
+            next
+        }
+        { print "tag-rules: no \" -- \" separator, skipped: " $0 > "/dev/stderr" }' |
+    notmuch tag --batch
+
+notmuch tag -new -- tag:new

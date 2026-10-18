@@ -19,6 +19,15 @@ path=/home/evan/Mail
 name=Evan
 primary_email=aeroevan@gmail.com
 
+# Must match the [index] section of notmuch/notmuchrc: neomutt and the
+# notmuch CLI only accept the List:, ListPost:, Unsubscribe: and
+# AutoSubmitted: query prefixes if these lines declare them.
+[index]
+header.List=List-Id
+header.ListPost=List-Post
+header.Unsubscribe=List-Unsubscribe
+header.AutoSubmitted=Auto-Submitted
+
 [maildir]
 synchronize_flags=true
 

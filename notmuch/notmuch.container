@@ -18,6 +18,8 @@ Wants=network-online.target
 ContainerName=notmuch
 Image=local/email-notmuch:latest
 Volume=maildir-data:/var/mail
+Volume=%h/src/env/email/notmuch/notmuchrc:/etc/notmuch/config:ro,z
+Volume=%h/src/env/email/notmuch/hooks:/etc/notmuch/hooks:ro,z
 
 [Service]
 Restart=on-failure
