@@ -147,8 +147,9 @@ virtual-mailboxes \
     "Flagged" "notmuch://?query=tag:flagged" \
     "Attach"  "notmuch://?query=tag:attachment AND date:30d.."
 
-# X opens an ad-hoc notmuch query as a virtual mailbox; A adds and D removes
-# tags on the highlighted message.
+# X opens an ad-hoc notmuch query as a virtual mailbox.  A pulls in the rest
+# of the highlighted message's thread, including messages the current query
+# left out.  Ctrl-T edits the message's tags: +tag adds, -tag removes.
 bind index,pager X vfolder-from-query
 bind index       A entire-thread
 macro index,pager \Ct "<modify-labels>" "modify notmuch tags"
