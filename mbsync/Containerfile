@@ -22,8 +22,10 @@ RUN apt-get update \
 
 COPY sasl-xoauth2/ /tmp/sasl-xoauth2/
 
+# cyrus-sasl looks for plugins under the Debian multiarch directory, which
+# gcc reports, rather than assuming x86_64.
 RUN cd /tmp/sasl-xoauth2 \
-    && gcc -shared -fPIC -o /usr/lib/x86_64-linux-gnu/sasl2/libxoauth2.so \
+    && gcc -shared -fPIC -o "/usr/lib/$(gcc -print-multiarch)/sasl2/libxoauth2.so" \
          xoauth2_str.c xoauth2_init.c xoauth2_server.c xoauth2_client.c \
     && rm -rf /tmp/sasl-xoauth2
 
