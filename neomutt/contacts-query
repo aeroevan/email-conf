@@ -1,0 +1,34 @@
+#!/bin/sh
+# Address-completion backend for neomutt's $query_command: everyone this
+# account has ever sent mail to, pulled from the notmuch index and filtered
+# by the text typed so far.  Recipients only, so newsletters and spam that
+# merely wrote to us never show up as suggestions.
+#
+# neomutt invokes this as:  contacts-query <partial name or address>
+# and expects one status line, then "address<TAB>name<TAB>other" per match.
+# The third column carries how many messages went to that address, and the
+# list is sorted on it, so the people actually written to most come first.
+#
+# Read-only against the index, as notmuch-config requires: the notmuch
+# container owns "notmuch new", and concurrent readers are safe.
+set -eu
+
+me=aeroevan@gmail.com
+
+echo "notmuch: addresses sent to"
+notmuch address --format=text --output=recipients --output=count \
+        --deduplicate=address "from:$me" |
+    sort -t "$(printf '\t')" -k1,1rn |
+    grep -iF -- "$*" |
+    awk -F '\t' -v me="$me" '
+        {
+            addr = $2; name = ""
+            if (match($2, /<[^>]*>$/)) {
+                addr = substr($2, RSTART + 1, RLENGTH - 2)
+                name = substr($2, 1, RSTART - 1)
+                sub(/ +$/, "", name)
+                gsub(/^"|"$/, "", name)
+            }
+            if (tolower(addr) == me) next
+            printf "%s\t%s\t%d sent\n", addr, name, $1
+        }'

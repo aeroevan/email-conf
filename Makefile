@@ -87,6 +87,7 @@ neomutt-install:
 	mkdir -p "$(NEOMUTT_DIR)" "$(NOTMUCH_DIR)" "$(HOME)/.cache/neomutt"
 	ln -sfn "$(CURDIR)/neomutt/neomuttrc" "$(NEOMUTT_DIR)/neomuttrc"
 	ln -sfn "$(CURDIR)/neomutt/notmuch-config" "$(NOTMUCH_DIR)/config"
+	touch "$(NEOMUTT_DIR)/aliases"
 
 neomutt-uninstall:
 	rm -f "$(NEOMUTT_DIR)/neomuttrc" "$(NOTMUCH_DIR)/config" "$(MAILDIR)"

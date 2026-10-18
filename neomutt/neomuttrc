@@ -84,6 +84,29 @@ set fast_reply   = yes
 set include      = yes
 set forward_quote = yes
 
+# ---------------------------------------------------------------- contacts
+# Two sources.  Ctrl-T in an address prompt (To:, Cc:, ...) runs
+# contacts-query, which completes against everyone this account has sent mail
+# to, straight from the notmuch index -- nothing to maintain.  Q in the index
+# opens the same list as a menu.  Aliases are for short nicknames on top of
+# that: Tab completes them, and one typed in full expands on its own.
+#
+# Not Tab for the query: the editor menu is shared by every prompt, so that
+# would also take over filename completion in the c and s folder prompts.
+# Ctrl-T is complete-query's default binding; it is bound here explicitly so
+# the key does not depend on the build.
+#
+# The alias file lives outside this tree on purpose.  With $alias_file unset,
+# <create-alias> (a) appends to the config file in use -- this one, through
+# the ~/.config/neomutt symlink -- which put contacts into git.
+# "make neomutt-install" creates it, since source fails on a missing file.
+set query_command = "~/src/env/email/neomutt/contacts-query %s"
+bind editor \Ct complete-query
+
+set alias_file    = "~/.config/neomutt/aliases"
+source $alias_file
+set reverse_alias = yes
+
 # ----------------------------------------------------------------- notmuch
 # The database lives inside the maildir, where the notmuch container put it.
 set nm_default_url  = "notmuch:///home/evan/Mail"
