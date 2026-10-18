@@ -211,6 +211,19 @@ macro index,pager \CR "<shell-escape>podman --remote exec mbsync mbsync -a<enter
 # Ctrl-B is unbound by default in both menus -- ^B is a line-editor key only.
 macro index,pager \Cb "<view-attachments><search>text/html<enter><view-mailcap><exit>" "open the HTML part with xdg-open"
 
+# Esc-U lists the links in the message with urlscan and opens the one picked
+# (via xdg-open).  urlscan reads the raw message and does its own MIME and
+# HTML decoding, so this works on HTML-only mail too.  $wait_key is switched
+# off around the pipe so closing urlscan returns straight to neomutt instead
+# of stopping at "Press any key to continue".
+#
+# Not Ctrl-U or Esc-u: those are undelete-thread and undelete-subthread in
+# both menus.  Unlike \Cx notation, <esc>U and <esc>u are distinct keys.
+# urlscan is not installed by anything here:  sudo dnf install urlscan
+macro index,pager <esc>U \
+    "<enter-command>unset wait_key<enter><pipe-message>urlscan<enter><enter-command>set wait_key<enter>" \
+    "open a link from this message with urlscan"
+
 # Esc-R marks everything unread in the CURRENT view as read.  ~U tags the
 # unread messages, <tag-prefix> applies the next function to all of them, and
 # <clear-flag>N clears the "new" flag, which is what unread means to neomutt.
