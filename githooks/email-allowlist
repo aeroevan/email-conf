@@ -1,0 +1,14 @@
+# Email addresses the pre-commit hook lets into this repo, one shell glob per
+# line, matched case-insensitively.  Anything else -- a contact, a family
+# member, a correspondent from a mail export -- is personal data and belongs
+# outside the tree (e.g. ~/.config/neomutt/aliases), not in a commit.
+#
+# Company sender addresses used in notmuch/hooks/tag-rules are fine to add.
+
+aeroevan@gmail.com
+*@example.com
+*@example.org
+*@example.net
+
+notifications@github.com
+noreply@github.com

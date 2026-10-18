@@ -10,6 +10,7 @@
 #   make check           # verify pizauth daemon + mail index from the containers
 #   make uninstall       # stop services and remove the quadlets
 #   make neomutt-install # symlink ~/Mail + the neomutt/notmuch configs
+#   make git-hooks       # enable githooks/ (pre-commit personal-data check)
 #
 # From inside a toolbox container, add:  PODMAN="podman --remote"
 #
@@ -41,7 +42,7 @@ NEOMUTT_DIR    ?= $(HOME)/.config/neomutt
 NOTMUCH_DIR    ?= $(HOME)/.config/notmuch/default
 
 .PHONY: all build install start stop restart status check uninstall \
-        neomutt-install neomutt-uninstall
+        neomutt-install neomutt-uninstall git-hooks
 
 all: build install start
 
@@ -88,6 +89,11 @@ neomutt-install:
 	ln -sfn "$(CURDIR)/neomutt/neomuttrc" "$(NEOMUTT_DIR)/neomuttrc"
 	ln -sfn "$(CURDIR)/neomutt/notmuch-config" "$(NOTMUCH_DIR)/config"
 	touch "$(NEOMUTT_DIR)/aliases"
+
+# Point git at the tracked hooks in githooks/ instead of .git/hooks, which
+# is not part of the repo.  Once per clone.
+git-hooks:
+	git config core.hooksPath githooks
 
 neomutt-uninstall:
 	rm -f "$(NEOMUTT_DIR)/neomuttrc" "$(NOTMUCH_DIR)/config" "$(MAILDIR)"

@@ -1,0 +1,57 @@
+#!/bin/sh
+# Refuse commits that add an email address not in githooks/email-allowlist.
+#
+# Personal data has reached this repo by accident before: <create-alias>
+# appending a contact to neomuttrc through its ~/.config symlink, and a Gmail
+# Takeout working directory with its audit records.  Only added lines are
+# checked, so addresses already in the tree do not trip it.
+#
+# Enable once per clone:  make git-hooks
+# Bypass a false positive (a retina image name with @2x after the stem):
+#   git commit --no-verify,
+# or better, add the address to the allowlist.
+set -eu
+
+top=$(git rev-parse --show-toplevel)
+allow="$top/githooks/email-allowlist"
+
+# "path:line: address" for every address on an added line.
+hits=$(git diff --cached -U0 --no-color --no-ext-diff --diff-filter=ACMR |
+    awk '
+        /^\+\+\+ / { path = substr($0, 7); next }
+        /^@@ / {
+            split($3, a, ","); line = substr(a[1], 2); next
+        }
+        /^\+/ {
+            s = substr($0, 2)
+            while (match(s, /[[:alnum:]._%+-]+@[[:alnum:].-]+\.[[:alpha:]][[:alpha:]]+/)) {
+                print path ":" line ": " tolower(substr(s, RSTART, RLENGTH))
+                s = substr(s, RSTART + RLENGTH)
+            }
+            line++
+        }')
+
+[ -n "$hits" ] || exit 0
+
+bad=$(printf '%s\n' "$hits" | while IFS= read -r hit; do
+    addr=${hit##*: }
+    ok=no
+    while IFS= read -r pat; do
+        case $pat in ''|'#'*) continue ;; esac
+        pat=$(printf '%s' "$pat" | tr '[:upper:]' '[:lower:]')
+        # $pat is a glob on purpose.
+        # shellcheck disable=SC2254
+        case $addr in $pat) ok=yes; break ;; esac
+    done < "$allow"
+    [ $ok = yes ] || printf '%s\n' "$hit"
+done)
+
+[ -n "$bad" ] || exit 0
+
+{
+    echo "pre-commit: staged changes add email addresses not in githooks/email-allowlist:"
+    printf '%s\n' "$bad" | sed 's/^/  /'
+    echo "Move personal addresses out of the repo, or add legitimate ones to the"
+    echo "allowlist.  To commit anyway:  git commit --no-verify"
+} >&2
+exit 1
