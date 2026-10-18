@@ -10,7 +10,11 @@
 #                 plain host storage owned by this user, so no container is
 #                 involved).  mbsync fills it; neomutt's flag changes are
 #                 rename()s that mbsync propagates back to Gmail on its next
-#                 pass, because isync's default "Sync All" includes flags.
+#                 pass, because mbsyncrc's Sync list includes PushFlags.
+#                 That only covers messages mbsync has a UID mapping for --
+#                 i.e. mail synced since the 2026-09-16 state fast-forward.
+#                 Flag changes on older mail, and anything under ~/Mail/Archive
+#                 (no channel covers it), stay local.
 #   - searching : the notmuch index the notmuch container maintains at
 #                 ~/Mail/.notmuch, opened read/write through libnotmuch.
 #   - sending   : neomutt/msmtp-send, which pipes the message into the msmtp
@@ -38,10 +42,15 @@ set postponed = "+Drafts"
 
 # No $trash on purpose.  mbsyncrc sets "Expunge None", so a message deleted
 # locally is simply re-downloaded on the next pass, and a local +Trash folder
-# would never reach Gmail because no channel covers it.  d marks the message
-# deleted, which mbsync propagates to Gmail as the \Deleted flag; to get real
-# Gmail-side archiving or deletion, add the matching channel to mbsyncrc
-# ([Gmail]/All Mail, [Gmail]/Trash) and set $trash here to match.
+# would never reach Gmail because no channel covers it.
+#
+# Since 2026-09-16 the Sync list omits PushGone, so d no longer reaches Gmail
+# at all: it marks the message deleted locally and nothing else.  That is
+# deliberate -- PushGone is what made deduplicating the maildir dangerous,
+# because deleting local files marks the far-side copies \Deleted.  To get
+# real Gmail-side archiving or deletion, add the matching channel to mbsyncrc
+# ([Gmail]/All Mail is now exposed over IMAP, as is [Gmail]/Trash), set $trash
+# here to match, and re-add PushGone knowingly.
 
 # Gmail's SMTP server files every message it accepts into [Gmail]/Sent Mail
 # by itself, and mbsync's "sent" channel pulls that back into ~/Mail/Sent.
@@ -192,3 +201,23 @@ macro index,pager \CR "<shell-escape>podman --remote exec mbsync mbsync -a<enter
 # on the text/html part without assuming which attachment number it is.
 # Ctrl-B is unbound by default in both menus -- ^B is a line-editor key only.
 macro index,pager \Cb "<view-attachments><search>text/html<enter><view-mailcap><exit>" "open the HTML part with xdg-open"
+
+# Esc-R marks everything unread in the CURRENT view as read.  ~U tags the
+# unread messages, <tag-prefix> applies the next function to all of them, and
+# <clear-flag>N clears the "new" flag, which is what unread means to neomutt.
+# The trailing <untag-pattern> is cleanup: without it every message stays
+# tagged and the next operation silently applies to all of them.
+#
+# Scope follows the view, which is the useful part: in +INBOX it is the inbox,
+# but open the "Unread" virtual mailbox first (notmuch tag:unread) and the same
+# key clears unread across every folder the index covers, Archive included.
+#
+# Not Ctrl-R: \CR is "sync now" above, and mutt's \Cx notation is
+# case-insensitive, so \Cr would silently rebind it.
+#
+# Note this desyncs read state from Gmail for older mail.  PushFlags only
+# propagates messages mbsync holds a UID mapping for, so anything predating
+# the 2026-09-16 fast-forward is marked read here and stays unread in Gmail.
+macro index,pager <esc>R \
+    "<tag-pattern>~U<enter><tag-prefix><clear-flag>N<untag-pattern>~T<enter>" \
+    "mark all messages in this view as read"
