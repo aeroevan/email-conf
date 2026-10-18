@@ -195,3 +195,9 @@ The repo is public, and personal data has slipped in by accident before, so
 `githooks/pre-commit` refuses commits that add any email address not listed
 in `githooks/email-allowlist`.  It reports the path and line of each one.
 Run `make git-hooks` once per clone to enable it.
+
+## License
+
+MIT; see [LICENSE](LICENSE).  The vendored `mbsync/sasl-xoauth2/` is
+copyright Moriyoshi Koizumi, also under the MIT license (its own
+[COPYING](mbsync/sasl-xoauth2/COPYING)).
